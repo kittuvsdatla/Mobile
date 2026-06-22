@@ -3,8 +3,9 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Alert, RefreshControl, ActivityIndicator,
 } from 'react-native';
-import { useSelector } from 'react-redux';
-import type { RootState } from '@/store';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '@/store';
+import { logoutUser } from '@/store/slices/authSlice';
 import { apiService }     from '@/services/apiService';
 import { Input }          from '@/components/ui/Input';
 import { Button }         from '@/components/ui/Button';
@@ -14,6 +15,7 @@ import type { SettingsData } from '@/types';
 
 export default function SettingsScreen() {
   const { user } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch<AppDispatch>();
 
   const [form, setForm] = useState<SettingsData>({
     companyName: '', address: '', phone: '', state: '',
@@ -346,6 +348,18 @@ export default function SettingsScreen() {
         )}
       </Card>
 
+      {/* Logout */}
+      <TouchableOpacity
+        style={styles.logoutBtn}
+        onPress={() => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign Out', style: 'destructive', onPress: () => dispatch(logoutUser()) },
+        ])}
+        activeOpacity={0.82}
+      >
+        <Text style={styles.logoutTxt}>🚪  Sign Out</Text>
+      </TouchableOpacity>
+
       {/* App Info */}
       <View style={styles.appInfo}>
         <Text style={styles.appInfoText}>BusinessApp Mobile v1.0.0</Text>
@@ -382,6 +396,12 @@ const styles = StyleSheet.create({
   cancelOtpBtn: { borderWidth: 1.5, borderColor: '#e5e7eb', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
   cancelOtpTxt: { color: '#6b7280', fontWeight: '600', fontSize: 14 },
 
+  logoutBtn: {
+    backgroundColor: '#fff1f2', borderRadius: 14, paddingVertical: 16,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    borderWidth: 1, borderColor: '#fecdd3',
+  },
+  logoutTxt: { fontSize: 15, fontWeight: '800', color: '#f43f5e' },
   appInfo:      { alignItems: 'center', paddingVertical: 16 },
   appInfoText:  { fontSize: 13, fontWeight: '600', color: '#9ca3af' },
   appInfoSub:   { fontSize: 12, color: '#d1d5db', marginTop: 4 },

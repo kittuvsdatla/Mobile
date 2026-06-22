@@ -204,6 +204,12 @@ export const apiService = {
       '/api/auth/check-phone', { phone }
     ),
 
+  sendOtp: (phone: string) =>
+    client.post<{ success: boolean; message: string }>('/api/auth/send-otp', { phone }),
+
+  requestSignupOtp: (phone: string) =>
+    client.post('/api/auth/signup/request-otp', { phone }),
+
   verifyOtp: (phone: string, otp: string, firebaseIdToken?: string) =>
     client.post<AuthResponse>('/api/auth/verify-otp', { phone, otp, firebaseIdToken }),
 
@@ -216,8 +222,8 @@ export const apiService = {
   changePin: (currentPin: string, newPin: string) =>
     client.post<{ success: boolean; message: string }>('/api/auth/change-pin', { currentPin, newPin }),
 
-  resetPin: (firebaseIdToken: string, newPin: string) =>
-    client.post<{ success: boolean; message: string }>('/api/auth/reset-pin', { firebaseIdToken, newPin }),
+  resetPin: (otp: string, newPin: string) =>
+    client.post<{ success: boolean; message: string }>('/api/auth/reset-pin', { otp, newPin }),
 
   signup: (data: SignupRequest) =>
     client.post<AuthResponse>('/api/auth/signup', data),
@@ -306,11 +312,19 @@ export const apiService = {
     client.delete(`/api/sales/${id}`),
 
   /** Opens sale PDF in device browser */
-  openSalePdf: (id: string) =>
-    openPdfInBrowser(buildPdfUrl(`/api/sales/${id}/pdf`)),
+  openSalePdf: (id: string, isDuplicate?: boolean) => {
+    const params: string[] = [];
+    if (isDuplicate) params.push('duplicate=true');
+    const qs = params.length ? '?' + params.join('&') : '';
+    return openPdfInBrowser(buildPdfUrl(`/api/sales/${id}/pdf${qs}`));
+  },
 
-  openSalePdfByInvoice: (invoiceNo: string) =>
-    openPdfInBrowser(buildPdfUrl(`/api/sales/invoice/${invoiceNo}/pdf`)),
+  openSalePdfByInvoice: (invoiceNo: string, isDuplicate?: boolean) => {
+    const params: string[] = [];
+    if (isDuplicate) params.push('duplicate=true');
+    const qs = params.length ? '?' + params.join('&') : '';
+    return openPdfInBrowser(buildPdfUrl(`/api/sales/invoice/${invoiceNo}/pdf${qs}`));
+  },
 
   // ---------- Purchases ----------
   getNextPurchaseInvoice: () =>
@@ -335,11 +349,19 @@ export const apiService = {
     client.delete(`/api/purchases/${id}`),
 
   /** Opens purchase PDF in device browser */
-  openPurchasePdf: (id: string) =>
-    openPdfInBrowser(buildPdfUrl(`/api/purchases/${id}/pdf`)),
+  openPurchasePdf: (id: string, isDuplicate?: boolean) => {
+    const params: string[] = [];
+    if (isDuplicate) params.push('duplicate=true');
+    const qs = params.length ? '?' + params.join('&') : '';
+    return openPdfInBrowser(buildPdfUrl(`/api/purchases/${id}/pdf${qs}`));
+  },
 
-  openPurchasePdfByInvoice: (invoiceNo: string) =>
-    openPdfInBrowser(buildPdfUrl(`/api/purchases/invoice/${invoiceNo}/pdf`)),
+  openPurchasePdfByInvoice: (invoiceNo: string, isDuplicate?: boolean) => {
+    const params: string[] = [];
+    if (isDuplicate) params.push('duplicate=true');
+    const qs = params.length ? '?' + params.join('&') : '';
+    return openPdfInBrowser(buildPdfUrl(`/api/purchases/invoice/${invoiceNo}/pdf${qs}`));
+  },
 
   // ---------- Dues ----------
   getDues: (status?: string, partyId?: string) => {
@@ -353,6 +375,9 @@ export const apiService = {
 
   createManualDue: (data: any) =>
     client.post<Due>('/api/dues', data),
+
+  updateDue: (id: string, data: { totalAmount?: number; notes?: string }) =>
+    client.put<Due>(`/api/dues/${id}`, data),
 
   recordDuePayment: (id: string, amount: number, paymentMode: string, notes?: string) =>
     client.post<any>(`/api/dues/${id}/payment`, { amount, paymentMode, notes }),
@@ -526,6 +551,18 @@ export const apiService = {
 
     deletePlan: (id: string) =>
       client.delete<{ message: string }>(`/api/admin/plans/${id}`),
+  },
+
+  // ---------- News ----------
+  news: {
+    getSaved: () =>
+      client.get<any[]>('/api/news/saved'),
+
+    save: (data: { title: string; link: string; publisher?: string; pubDate?: string }) =>
+      client.post<any>('/api/news/saved', data),
+
+    unsave: (id: string) =>
+      client.delete(`/api/news/saved/${id}`),
   },
 };
 

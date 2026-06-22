@@ -3,8 +3,9 @@ import {
   TouchableOpacity, Text, ActivityIndicator,
   StyleSheet, ViewStyle, TextStyle,
 } from 'react-native';
+import { COLORS, RADIUS, SHADOWS } from '@/styles/theme';
 
-type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'neutral';
 type Size    = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
@@ -21,17 +22,18 @@ interface ButtonProps {
 }
 
 const VARIANT_STYLES: Record<Variant, { btn: ViewStyle; txt: TextStyle }> = {
-  primary:   { btn: { backgroundColor: '#f16a0a' },                     txt: { color: '#ffffff' } },
-  secondary: { btn: { backgroundColor: '#22c55e' },                     txt: { color: '#ffffff' } },
-  outline:   { btn: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#f16a0a' }, txt: { color: '#f16a0a' } },
-  ghost:     { btn: { backgroundColor: 'transparent' },                  txt: { color: '#f16a0a' } },
-  danger:    { btn: { backgroundColor: '#ef4444' },                      txt: { color: '#ffffff' } },
+  primary:   { btn: { backgroundColor: COLORS.primary },                                  txt: { color: COLORS.surface } },
+  secondary: { btn: { backgroundColor: COLORS.dark },                                     txt: { color: COLORS.surface } },
+  outline:   { btn: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: COLORS.primary }, txt: { color: COLORS.primary } },
+  neutral:   { btn: { backgroundColor: COLORS.surfaceAlt },                               txt: { color: COLORS.textSecondary } },
+  ghost:     { btn: { backgroundColor: 'transparent' },                                   txt: { color: COLORS.primary } },
+  danger:    { btn: { backgroundColor: COLORS.danger },                                   txt: { color: COLORS.surface } },
 };
 
 const SIZE_STYLES: Record<Size, { btn: ViewStyle; txt: TextStyle }> = {
-  sm: { btn: { paddingVertical: 8,  paddingHorizontal: 14, borderRadius: 8 },  txt: { fontSize: 13 } },
-  md: { btn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10 }, txt: { fontSize: 15 } },
-  lg: { btn: { paddingVertical: 15, paddingHorizontal: 28, borderRadius: 12 }, txt: { fontSize: 16 } },
+  sm: { btn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: RADIUS.md },  txt: { fontSize: 13 } },
+  md: { btn: { paddingVertical: 14, paddingHorizontal: 22, borderRadius: RADIUS.lg },  txt: { fontSize: 15 } },
+  lg: { btn: { paddingVertical: 18, paddingHorizontal: 28, borderRadius: RADIUS.xl },  txt: { fontSize: 16 } },
 };
 
 export const Button: React.FC<ButtonProps> = ({
@@ -57,7 +59,7 @@ export const Button: React.FC<ButtonProps> = ({
       ]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={variant === 'outline' ? '#f16a0a' : '#fff'} />
+        <ActivityIndicator size="small" color={variant === 'outline' || variant === 'ghost' ? COLORS.primary : (variant === 'neutral' ? COLORS.textSecondary : '#fff')} />
       ) : (
         <>
           {icon ? <Text style={[styles.icon]}>{icon}</Text> : null}

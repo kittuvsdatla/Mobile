@@ -16,17 +16,36 @@ import type { RootState, AppDispatch } from '@/store';
 import { createSale, updateSale } from '@/store/slices/salesSlice';
 import { fetchStock } from '@/store/slices/stockSlice';
 import { fetchDues } from '@/store/slices/duesSlice';
-import { addParty } from '@/store/slices/partiesSlice';
-import { addTransporter } from '@/store/slices/transportersSlice';
+import { addParty, fetchCustomers } from '@/store/slices/partiesSlice';
+import { fetchProducts } from '@/store/slices/productsSlice';
+import { addTransporter, fetchTransporters } from '@/store/slices/transportersSlice';
 import { apiService } from '@/services/apiService';
 import { Modal as UiModal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import type { Sale } from '@/types';
 
+const T = {
+  navy:     '#0f172a',
+  navyMid:  '#1e293b',
+  bg:       '#f1f5f9',
+  surface:  '#ffffff',
+  primary:  '#3b82f6',  // Blue for sales
+  primaryBg:'#eff6ff',
+  emerald:  '#10b981',
+  emeraldBg:'#ecfdf5',
+  rose:     '#f43f5e',
+  roseBg:   '#fff1f2',
+  t1:       '#0f172a',
+  t2:       '#334155',
+  t3:       '#64748b',
+  t4:       '#94a3b8',
+  bdr:      '#e2e8f0',
+};
+
 interface Props {
   visible: boolean;
-  onClose: () => void;
+  onClose: (success?: boolean) => void;
   initialData?: Sale | null;
 }
 
@@ -77,6 +96,15 @@ export default function CreateSaleModal({ visible, onClose, initialData }: Props
   const [showTransporterPicker, setShowTransporterPicker] = useState(false);
   const [activeProductIdx,      setActiveProductIdx]      = useState<number | null>(null);
 
+  // Date Picker State
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [calMonth, setCalMonth] = useState(new Date());
+
+  // Search states for pickers
+  const [searchCustomer, setSearchCustomer] = useState('');
+  const [searchTransporter, setSearchTransporter] = useState('');
+  const [searchProduct, setSearchProduct] = useState('');
+
   // Inline add Customer state
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', address: '', state: '', gstNumber: '' });
@@ -86,6 +114,15 @@ export default function CreateSaleModal({ visible, onClose, initialData }: Props
   const [showAddTransporter, setShowAddTransporter] = useState(false);
   const [transporterForm, setTransporterForm] = useState({ name: '', phone: '', vehicleNumber: '', address: '' });
   const [savingTransporter, setSavingTransporter] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      dispatch(fetchCustomers());
+      dispatch(fetchProducts());
+      dispatch(fetchStock());
+      dispatch(fetchTransporters());
+    }
+  }, [visible, dispatch]);
 
   // Load invoice number and pre-fill for edits
   useEffect(() => {
@@ -184,7 +221,7 @@ export default function CreateSaleModal({ visible, onClose, initialData }: Props
       }
       dispatch(fetchStock());
       dispatch(fetchDues(undefined));
-      onClose();
+      onClose(true);
     } catch (err: any) {
       setErrorMsg(typeof err === 'string' ? err : 'Failed to save sale. Please try again.');
     } finally {
@@ -231,22 +268,20 @@ export default function CreateSaleModal({ visible, onClose, initialData }: Props
   const selectedTransporter = transporters.find(t => t.id === transporterId);
 
   return (
-    <Modal visible={visible} statusBarTranslucent={true} navigationBarTranslucent={true} transparent={true} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} statusBarTranslucent={true} navigationBarTranslucent={true} transparent={true} animationType="slide" onRequestClose={() => onClose()}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.root}
       >
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: T.navy }]}>
           <Text style={styles.headerTitle}>{initialData ? 'Edit Sale' : 'Create Sale'}</Text>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <TouchableOpacity style={styles.closeBtn} onPress={() => onClose()}>
             <Text style={styles.closeTxt}>✕</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.body} contentContainerStyle={[styles.bodyContent, { paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {errorMsg ? <View style={styles.errorBox}><Text style={styles.errorTxt}>{errorMsg}</Text></View> : null}
-
           {/* Invoice + Date */}
           <View style={styles.row2}>
             <View style={styles.halfField}>
@@ -255,7 +290,9 @@ export default function CreateSaleModal({ visible, onClose, initialData }: Props
             </View>
             <View style={styles.halfField}>
               <Text style={styles.label}>Date</Text>
-              <TextInput style={styles.input} value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" />
+              <TouchableOpacity style={[styles.input, { justifyContent: 'center' }]} onPress={() => { setCalMonth(date ? new Date(date) : new Date()); setShowDatePicker(true); }}>
+                <Text style={{ color: date ? T.t1 : T.t4, fontSize: 14 }}>{date || 'YYYY-MM-DD'}</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -407,9 +444,11 @@ export default function CreateSaleModal({ visible, onClose, initialData }: Props
           <Text style={styles.label}>Notes (optional)</Text>
           <TextInput style={[styles.input, { minHeight: 64, textAlignVertical: 'top' }]} value={notes} onChangeText={setNotes} placeholder="Optional notes..." multiline />
 
+          {errorMsg ? <View style={[styles.errorBox, { marginTop: 16, marginBottom: 0 }]}><Text style={styles.errorTxt}>{errorMsg}</Text></View> : null}
+
           {/* Action buttons */}
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => onClose()}>
               <Text style={styles.cancelTxt}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={loading}>
@@ -422,7 +461,7 @@ export default function CreateSaleModal({ visible, onClose, initialData }: Props
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Customer Picker Modal */}
+      {/* Customer Picker */}
       <Modal visible={showCustomerPicker} statusBarTranslucent={true} navigationBarTranslucent={true} animationType="slide" transparent onRequestClose={() => setShowCustomerPicker(false)}>
         <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowCustomerPicker(false)}>
           <View style={[styles.pickerSheet, { paddingBottom: insets.bottom + 16 }]}>
@@ -432,20 +471,30 @@ export default function CreateSaleModal({ visible, onClose, initialData }: Props
                 <Text style={styles.addInlineTxt}>+ Add Customer</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {customers.map(c => (
-                <TouchableOpacity key={c.id} style={styles.pickerOption} onPress={() => { setPartyId(c.id); setShowCustomerPicker(false); }}>
-                  <Text style={[styles.pickerOptionTxt, c.id === partyId && { color: '#f16a0a', fontWeight: '700' }]}>{c.name}</Text>
-                  {c.phone ? <Text style={styles.pickerOptionSub}>📞 {c.phone}</Text> : null}
-                </TouchableOpacity>
+            <TextInput 
+              style={styles.pickerSearch} 
+              placeholder="Search customers..." 
+              value={searchCustomer} 
+              onChangeText={setSearchCustomer} 
+              autoCorrect={false}
+            />
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+              {customers
+                .filter(c => c.name.toLowerCase().includes(searchCustomer.toLowerCase()) || (c.phone && c.phone.includes(searchCustomer)))
+                .map(c => (
+                  <TouchableOpacity key={c.id} style={styles.pickerOption} onPress={() => { setPartyId(c.id); setShowCustomerPicker(false); }}>
+                    <Text style={[styles.pickerOptionTxt, c.id === partyId && { color: T.primary, fontWeight: '700' }]}>{c.name}</Text>
+                    {c.phone ? <Text style={styles.pickerOptionSub}>📞 {c.phone}</Text> : null}
+                  </TouchableOpacity>
               ))}
               {customers.length === 0 && <Text style={styles.pickerEmpty}>No customers found</Text>}
+              {customers.length > 0 && customers.filter(c => c.name.toLowerCase().includes(searchCustomer.toLowerCase()) || (c.phone && c.phone.includes(searchCustomer))).length === 0 && <Text style={styles.pickerEmpty}>No matches for "{searchCustomer}"</Text>}
             </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
 
-      {/* Transporter Picker Modal */}
+      {/* Transporter Picker */}
       <Modal visible={showTransporterPicker} statusBarTranslucent={true} navigationBarTranslucent={true} animationType="slide" transparent onRequestClose={() => setShowTransporterPicker(false)}>
         <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowTransporterPicker(false)}>
           <View style={[styles.pickerSheet, { paddingBottom: insets.bottom + 16 }]}>
@@ -455,44 +504,63 @@ export default function CreateSaleModal({ visible, onClose, initialData }: Props
                 <Text style={styles.addInlineTxt}>+ Add Transporter</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <TextInput 
+              style={styles.pickerSearch} 
+              placeholder="Search transporters..." 
+              value={searchTransporter} 
+              onChangeText={setSearchTransporter} 
+              autoCorrect={false}
+            />
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
               <TouchableOpacity style={styles.pickerOption} onPress={() => { setTransporterId(''); setShowTransporterPicker(false); }}>
                 <Text style={styles.pickerOptionTxt}>— None —</Text>
               </TouchableOpacity>
-              {transporters.map(t => (
-                <TouchableOpacity key={t.id} style={styles.pickerOption} onPress={() => {
-                  setTransporterId(t.id);
-                  if (t.vehicleNumber) { setVehicleNumber(t.vehicleNumber); }
-                  setShowTransporterPicker(false);
-                }}>
-                  <Text style={[styles.pickerOptionTxt, t.id === transporterId && { color: '#f16a0a', fontWeight: '700' }]}>{t.name}</Text>
-                  {t.vehicleNumber ? <Text style={styles.pickerOptionSub}>🚗 {t.vehicleNumber}</Text> : null}
-                </TouchableOpacity>
+              {transporters
+                .filter(t => t.name.toLowerCase().includes(searchTransporter.toLowerCase()) || (t.vehicleNumber && t.vehicleNumber.toLowerCase().includes(searchTransporter.toLowerCase())))
+                .map(t => (
+                  <TouchableOpacity key={t.id} style={styles.pickerOption} onPress={() => {
+                    setTransporterId(t.id);
+                    if (t.vehicleNumber) { setVehicleNumber(t.vehicleNumber); }
+                    setShowTransporterPicker(false);
+                  }}>
+                    <Text style={[styles.pickerOptionTxt, t.id === transporterId && { color: T.primary, fontWeight: '700' }]}>{t.name}</Text>
+                    {t.vehicleNumber ? <Text style={styles.pickerOptionSub}>🚗 {t.vehicleNumber}</Text> : null}
+                  </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
 
-      {/* Product Picker Modal */}
+      {/* Product Picker */}
       <Modal visible={activeProductIdx !== null} statusBarTranslucent={true} navigationBarTranslucent={true} animationType="slide" transparent onRequestClose={() => setActiveProductIdx(null)}>
         <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setActiveProductIdx(null)}>
           <View style={[styles.pickerSheet, { paddingBottom: insets.bottom + 16 }]}>
-            <Text style={styles.pickerTitle}>Select Product</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {products.map(p => {
-                const stockQty = stockItems.find(s => s.product.id === p.id)?.quantity ?? 0;
-                return (
-                  <TouchableOpacity key={p.id} style={styles.pickerOption} onPress={() => {
-                    if (activeProductIdx !== null) { updateItem(activeProductIdx, 'productId', p.id); }
-                    setActiveProductIdx(null);
-                  }}>
-                    <Text style={styles.pickerOptionTxt}>{p.name}</Text>
-                    <Text style={styles.pickerOptionSub}>Stock: {stockQty} {p.unitType}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-              {products.length === 0 && <Text style={styles.pickerEmpty}>No products with stock</Text>}
+            <Text style={[styles.pickerTitle, { marginBottom: 16 }]}>Select Product</Text>
+            <TextInput 
+              style={styles.pickerSearch} 
+              placeholder="Search products..." 
+              value={searchProduct} 
+              onChangeText={setSearchProduct} 
+              autoCorrect={false}
+            />
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+              {products
+                .filter(p => p.name.toLowerCase().includes(searchProduct.toLowerCase()) || (p.category && p.category.toLowerCase().includes(searchProduct.toLowerCase())))
+                .map(p => {
+                  const stockQty = stockItems.find(s => s.product.id === p.id)?.quantity ?? 0;
+                  return (
+                    <TouchableOpacity key={p.id} style={styles.pickerOption} onPress={() => {
+                      if (activeProductIdx !== null) { updateItem(activeProductIdx, 'productId', p.id); }
+                      setActiveProductIdx(null);
+                    }}>
+                      <Text style={styles.pickerOptionTxt}>{p.name}</Text>
+                      <Text style={styles.pickerOptionSub}>Stock: {stockQty} {p.unitType}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              {products.length === 0 && <Text style={styles.pickerEmpty}>No products in stock</Text>}
+              {products.length > 0 && products.filter(p => p.name.toLowerCase().includes(searchProduct.toLowerCase())).length === 0 && <Text style={styles.pickerEmpty}>No matches for "{searchProduct}"</Text>}
             </ScrollView>
           </View>
         </TouchableOpacity>
@@ -516,87 +584,140 @@ export default function CreateSaleModal({ visible, onClose, initialData }: Props
         <Input label="Address" value={transporterForm.address} onChangeText={v => setTransporterForm(f => ({ ...f, address: v }))} placeholder="Address" multiline />
         <Button title={savingTransporter ? 'Saving...' : 'Add Transporter'} onPress={handleAddTransporterInline} disabled={savingTransporter} fullWidth style={{ marginTop: 8 }} />
       </UiModal>
+
+      {/* Date Picker Modal */}
+      <Modal visible={showDatePicker} transparent animationType="fade" onRequestClose={() => setShowDatePicker(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: T.surface, borderRadius: 20, padding: 20 }}>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: T.navy, marginBottom: 16 }}>Select Date</Text>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <TouchableOpacity onPress={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))} style={{ padding: 10, backgroundColor: T.bg, borderRadius: 10 }}>
+                <Text style={{ fontWeight: '900', color: T.navy }}>◀</Text>
+              </TouchableOpacity>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: T.navy }}>
+                {calMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+              </Text>
+              <TouchableOpacity onPress={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))} style={{ padding: 10, backgroundColor: T.bg, borderRadius: 10 }}>
+                <Text style={{ fontWeight: '900', color: T.navy }}>▶</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                <Text key={d} style={{ width: '14.28%', textAlign: 'center', fontSize: 12, fontWeight: '800', color: T.t3, marginBottom: 10 }}>{d}</Text>
+              ))}
+              {Array(new Date(calMonth.getFullYear(), calMonth.getMonth(), 1).getDay()).fill(0).map((_, i) => (
+                <View key={`empty-${i}`} style={{ width: '14.28%', aspectRatio: 1 }} />
+              ))}
+              {Array.from({length: new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate()}, (_,i) => i+1).map(d => {
+                const dateStr = `${calMonth.getFullYear()}-${String(calMonth.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const isSelected = date === dateStr;
+                return (
+                  <TouchableOpacity
+                    key={d}
+                    onPress={() => {
+                      setDate(dateStr);
+                      setShowDatePicker(false);
+                    }}
+                    style={{ width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: isSelected ? T.primary : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ fontSize: 14, fontWeight: isSelected ? '900' : '600', color: isSelected ? '#fff' : T.navy }}>{d}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity style={{ backgroundColor: T.navy, marginTop: 24, paddingVertical: 14, borderRadius: 12, alignItems: 'center' }} onPress={() => setShowDatePicker(false)}>
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  root:            { flex: 1, backgroundColor: '#f9fafb' },
-  header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  headerTitle:     { fontSize: 18, fontWeight: '800', color: '#111827' },
-  closeBtn:        { width: 32, height: 32, borderRadius: 16, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' },
-  closeTxt:        { fontSize: 14, color: '#6b7280', fontWeight: '700' },
+  root:            { flex: 1, backgroundColor: T.bg },
+  header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, shadowColor: T.navy, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5, zIndex: 10 },
+  headerTitle:     { fontSize: 20, fontWeight: '800', color: T.surface, letterSpacing: -0.5 },
+  closeBtn:        { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  closeTxt:        { fontSize: 14, color: T.surface, fontWeight: '700' },
 
   body:            { flex: 1 },
-  bodyContent:     { padding: 16 },
+  bodyContent:     { padding: 20 },
 
-  errorBox:        { backgroundColor: '#fee2e2', borderRadius: 10, padding: 12, marginBottom: 14 },
-  errorTxt:        { color: '#dc2626', fontSize: 13, fontWeight: '600' },
+  errorBox:        { backgroundColor: T.roseBg, borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#fecdd3' },
+  errorTxt:        { color: T.rose, fontSize: 13, fontWeight: '600' },
 
-  row2:            { flexDirection: 'row', gap: 10, marginBottom: 4 },
+  row2:            { flexDirection: 'row', gap: 12, marginBottom: 4 },
   halfField:       { flex: 1 },
-  label:           { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6, marginTop: 12 },
-  labelSm:         { fontSize: 12, fontWeight: '600', color: '#6b7280', marginBottom: 4 },
-  input:           { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e5e7eb', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#1f2937' },
-  picker:          { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e5e7eb', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  pickerTxt:       { fontSize: 14, color: '#1f2937', flex: 1 },
-  pickerChev:      { fontSize: 12, color: '#9ca3af' },
+  label:           { fontSize: 13, fontWeight: '700', color: T.t2, marginBottom: 6, marginTop: 12 },
+  labelSm:         { fontSize: 12, fontWeight: '700', color: T.t3, marginBottom: 4 },
+  input:           { backgroundColor: T.surface, borderWidth: 1, borderColor: T.bdr, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: T.t1, fontWeight: '500' },
+  picker:          { backgroundColor: T.surface, borderWidth: 1, borderColor: T.bdr, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  pickerTxt:       { fontSize: 14, color: T.t1, flex: 1, fontWeight: '500' },
+  pickerChev:      { fontSize: 12, color: T.t4 },
 
-  sectionHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginBottom: 8 },
-  sectionTitle:    { fontSize: 15, fontWeight: '700', color: '#111827', marginTop: 16, marginBottom: 8 },
-  addItemBtn:      { backgroundColor: '#fef7ee', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  addItemTxt:      { color: '#f16a0a', fontWeight: '700', fontSize: 13 },
+  sectionHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 12 },
+  sectionTitle:    { fontSize: 16, fontWeight: '800', color: T.t1 },
+  addItemBtn:      { backgroundColor: T.primaryBg, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  addItemTxt:      { color: T.primary, fontWeight: '700', fontSize: 13 },
 
-  itemCard:        { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#e5e7eb' },
-  itemFooter:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
-  itemTotal:       { fontSize: 14, fontWeight: '700', color: '#f16a0a' },
-  removeBtn:       { backgroundColor: '#fee2e2', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  removeTxt:       { fontSize: 12, color: '#dc2626', fontWeight: '600' },
+  itemCard:        { backgroundColor: T.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: T.bdr, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 2 },
+  itemFooter:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: T.bdrL },
+  itemTotal:       { fontSize: 16, fontWeight: '800', color: T.primary },
+  removeBtn:       { backgroundColor: T.roseBg, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  removeTxt:       { fontSize: 12, color: T.rose, fontWeight: '700' },
 
-  totalsBox:       { backgroundColor: '#fef7ee', borderRadius: 12, padding: 14, marginVertical: 10, borderWidth: 1, borderColor: '#fed7aa' },
-  totalRow:        { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  totalRowBig:     { borderTopWidth: 1, borderTopColor: '#fed7aa', marginTop: 4, paddingTop: 8 },
-  totalLbl:        { fontSize: 13, color: '#6b7280' },
-  totalVal:        { fontSize: 13, fontWeight: '600', color: '#374151' },
-  grandLbl:        { fontSize: 14, fontWeight: '700', color: '#111827' },
-  grandVal:        { fontSize: 15, fontWeight: '800', color: '#f16a0a' },
+  totalsBox:       { backgroundColor: T.surface, borderRadius: 16, padding: 16, marginVertical: 16, borderWidth: 1, borderColor: T.bdr, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 2 },
+  totalRow:        { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  totalRowBig:     { borderTopWidth: 1, borderTopColor: T.bdrL, marginTop: 8, paddingTop: 12 },
+  totalLbl:        { fontSize: 13, color: T.t3, fontWeight: '600' },
+  totalVal:        { fontSize: 13, fontWeight: '700', color: T.t1 },
+  grandLbl:        { fontSize: 15, fontWeight: '800', color: T.t1 },
+  grandVal:        { fontSize: 16, fontWeight: '900', color: T.primary },
 
-  toggleRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 12 },
-  checkbox:        { width: 20, height: 20, borderRadius: 5, borderWidth: 2, borderColor: '#d1d5db', alignItems: 'center', justifyContent: 'center' },
-  checkboxActive:  { borderColor: '#f16a0a', backgroundColor: '#f16a0a' },
-  checkmark:       { color: '#fff', fontSize: 12, fontWeight: '800' },
-  toggleLbl:       { fontSize: 14, fontWeight: '600', color: '#374151' },
+  toggleRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 16, backgroundColor: T.surface, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: T.bdr },
+  checkbox:        { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: T.t4, alignItems: 'center', justifyContent: 'center' },
+  checkboxActive:  { borderColor: T.primary, backgroundColor: T.primary },
+  checkmark:       { color: T.surface, fontSize: 14, fontWeight: '800' },
+  toggleLbl:       { fontSize: 14, fontWeight: '700', color: T.t1 },
 
-  transportBox:    { backgroundColor: '#f9fafb', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 10 },
+  transportBox:    { backgroundColor: T.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: T.bdr, marginBottom: 16 },
 
-  grandTotalBox:   { backgroundColor: '#111827', borderRadius: 12, padding: 16, marginVertical: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  grandTotalAmt:   { fontSize: 20, fontWeight: '800', color: '#f16a0a' },
+  grandTotalBox:   { backgroundColor: T.navy, borderRadius: 16, padding: 20, marginVertical: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: T.navy, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 6 },
+  grandTotalAmt:   { fontSize: 24, fontWeight: '900', color: T.surface },
 
-  modeBtn:         { flex: 1, borderWidth: 1.5, borderColor: '#e5e7eb', borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
-  modeBtnActive:   { borderColor: '#f16a0a', backgroundColor: '#fef7ee' },
-  modeTxt:         { fontSize: 13, fontWeight: '600', color: '#6b7280' },
-  modeTxtActive:   { color: '#f16a0a' },
-  modeGrid:        { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  modeChip:        { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1.5, borderColor: '#e5e7eb' },
-  modeChipActive:  { borderColor: '#f16a0a', backgroundColor: '#fef7ee' },
-  modeChipTxt:     { fontSize: 13, fontWeight: '600', color: '#6b7280' },
-  modeChipTxtActive:{ color: '#f16a0a' },
+  modeBtn:         { flex: 1, borderWidth: 1, borderColor: T.bdr, backgroundColor: T.surface, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  modeBtnActive:   { borderColor: T.primary, backgroundColor: T.primaryBg, borderWidth: 1.5 },
+  modeTxt:         { fontSize: 13, fontWeight: '700', color: T.t3 },
+  modeTxtActive:   { color: T.primary },
+  modeGrid:        { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8, marginTop: 8 },
+  modeChip:        { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: T.bdr, backgroundColor: T.surface },
+  modeChipActive:  { borderColor: T.primary, backgroundColor: T.primaryBg, borderWidth: 1.5 },
+  modeChipTxt:     { fontSize: 13, fontWeight: '700', color: T.t3 },
+  modeChipTxtActive:{ color: T.primary },
 
-  actionRow:       { flexDirection: 'row', gap: 12, marginTop: 20 },
-  cancelBtn:       { flex: 1, borderWidth: 1.5, borderColor: '#e5e7eb', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  cancelTxt:       { fontSize: 15, fontWeight: '700', color: '#6b7280' },
-  submitBtn:       { flex: 2, backgroundColor: '#f16a0a', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  submitTxt:       { fontSize: 15, fontWeight: '800', color: '#fff' },
+  actionRow:       { flexDirection: 'row', gap: 12, marginTop: 32 },
+  cancelBtn:       { flex: 1, backgroundColor: T.surface, borderWidth: 1, borderColor: T.bdr, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  cancelTxt:       { fontSize: 15, fontWeight: '700', color: T.t2 },
+  submitBtn:       { flex: 2, backgroundColor: T.primary, borderRadius: 14, paddingVertical: 16, alignItems: 'center', shadowColor: T.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  submitTxt:       { fontSize: 15, fontWeight: '800', color: T.surface },
 
-  pickerOverlay:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  pickerSheet:     { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '65%' },
-  pickerTitle:     { fontSize: 16, fontWeight: '800', color: '#111827' },
-  pickerOption:    { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  pickerOptionTxt: { fontSize: 15, color: '#1f2937', fontWeight: '500' },
-  pickerOptionSub: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
-  pickerEmpty:     { textAlign: 'center', color: '#9ca3af', paddingVertical: 20 },
+  pickerOverlay:   { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'flex-end' },
+  pickerSheet:     { backgroundColor: T.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '70%' },
+  pickerTitle:     { fontSize: 18, fontWeight: '800', color: T.t1 },
+  pickerSearch:    { backgroundColor: T.bg, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, color: T.t1, marginBottom: 12, borderWidth: 1, borderColor: T.bdr },
+  pickerOption:    { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: T.bdrL },
+  pickerOptionTxt: { fontSize: 15, color: T.t1, fontWeight: '600' },
+  pickerOptionSub: { fontSize: 13, color: T.t4, marginTop: 4, fontWeight: '500' },
+  pickerEmpty:     { textAlign: 'center', color: T.t4, paddingVertical: 32, fontSize: 15 },
 
-  pickerHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, borderBottomWidth: 1, borderBottomColor: '#f3f4f6', paddingBottom: 10 },
-  addInlineBtn:    { backgroundColor: '#fef7ee', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderEndWidth: 1, borderColor: '#fed7aa' },
-  addInlineTxt:    { color: '#f16a0a', fontSize: 12, fontWeight: '700' },
+  pickerHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: T.bdr, paddingBottom: 16 },
+  addInlineBtn:    { backgroundColor: T.primaryBg, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  addInlineTxt:    { color: T.primary, fontSize: 13, fontWeight: '800' },
 });

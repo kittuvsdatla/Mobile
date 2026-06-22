@@ -143,7 +143,7 @@ export interface Due {
   partyId?: string;
   partyName?: string;
   type?: string;           // 'SALE' | 'PURCHASE' | 'sale' | 'purchase' | 'manual'
-  referenceType?: 'sale' | 'purchase' | 'manual';
+  referenceType?: 'sale' | 'purchase' | 'manual' | 'opening_balance';
   invoiceNumber?: string;
   date?: string;
   amount?: number;         // Original total
@@ -328,6 +328,7 @@ export interface ApiResponse<T> {
 export type RootStackParamList = {
   Landing: undefined;
   Auth: undefined;
+  PinUnlock: undefined;
   Dashboard: undefined;
   Admin: undefined;
 };
@@ -339,7 +340,7 @@ export type AuthStackParamList = {
   Expired: undefined;
 };
 
-export type DashboardDrawerParamList = {
+export type DashboardTabParamList = {
   Overview: undefined;
   Parties: undefined;
   Products: undefined;
@@ -352,6 +353,7 @@ export type DashboardDrawerParamList = {
   Employees: undefined;
   News: undefined;
   Settings: undefined;
+  More: undefined;
   Ledger: {
     fromDate: string;
     toDate: string;
@@ -359,3 +361,7 @@ export type DashboardDrawerParamList = {
     types?: string[];
   };
 };
+
+// Legacy alias
+export type DashboardDrawerParamList = DashboardTabParamList;
+

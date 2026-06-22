@@ -7,10 +7,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   Modal,
-  SafeAreaView,
   Platform,
   BackHandler,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
@@ -18,6 +19,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import type { RootState } from '@/store';
 import type { DashboardDrawerParamList, LedgerEntry } from '@/types';
 import { apiService } from '@/services/apiService';
+import { downloadLedgerPdf } from '@/services/downloadHelper';
 import { Card } from '@/components/ui/Card';
 import { InvoicePreviewModal } from '@/components/modals/InvoicePreviewModal';
 import { Alert } from 'react-native';
@@ -45,6 +47,7 @@ function fmtCurrency(amount: number): string {
 }
 
 export default function LedgerScreen() {
+  const insets  = useSafeAreaInsets();
   const route = useRoute<LedgerRouteProp>();
   const navigation = useNavigation<LedgerNavigationProp>();
   const { fromDate, toDate, partyId, types } = route.params;
@@ -58,6 +61,7 @@ export default function LedgerScreen() {
   const [ledgerData, setLedgerData] = useState<LedgerEntry[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showMenu, setShowMenu] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
 
   // Invoice Preview State
   const [previewInvoice, setPreviewInvoice] = useState<any | null>(null);
@@ -77,22 +81,45 @@ export default function LedgerScreen() {
         : await apiService.getPurchaseDetail(entry.referenceId);
       
       if (res.success && res.data) {
+        const raw = res.data as any;
         const mappedInvoice = {
-          id: res.data.id,
-          reference: res.data.invoiceNumber,
-          type: isSale ? 'SALE' : 'PURCHASE',
-          date: res.data.date,
-          partyName: res.data.partyName || res.data.party?.name,
-          amount: res.data.finalTotal,
-          subTotal: res.data.subtotal || res.data.taxableSubtotal,
-          taxAmount: (res.data.cgstAmount || 0) + (res.data.sgstAmount || 0),
-          discount: (res.data as any).discount || 0,
-          amountPaid: res.data.amountPaid,
-          dueAmount: res.data.dueAmount,
-          transportMode: res.data.transporterName,
-          vehicleNumber: res.data.vehicleNumber,
-          shippingAddress: res.data.deliveryLocation,
-          items: res.data.items,
+          id:              raw.id,
+          invoiceNumber:   raw.invoiceNumber,
+          reference:       raw.invoiceNumber,
+          type:            isSale ? 'SALE' : 'PURCHASE',
+          date:            raw.date,
+          partyName:       raw.partyName || raw.party?.name,
+          partyPhone:      raw.partyPhone || raw.party?.phone,
+          finalTotal:      raw.finalTotal,
+          amount:          raw.finalTotal,
+          subTotal:        raw.subtotal ?? raw.taxableSubtotal,
+          taxableSubtotal: raw.taxableSubtotal,
+          subtotal:        raw.subtotal,
+          cgstAmount:      raw.cgstAmount ?? 0,
+          sgstAmount:      raw.sgstAmount ?? 0,
+          taxAmount:       (raw.cgstAmount ?? 0) + (raw.sgstAmount ?? 0),
+          discount:        raw.discount ?? 0,
+          amountPaid:      raw.amountPaid,
+          dueAmount:       raw.dueAmount,
+          transporterName: raw.transporterName,
+          vehicleNumber:   raw.vehicleNumber,
+          deliveryLocation:raw.deliveryLocation,
+          freightCharge:   raw.transportCharges ?? raw.freightCharge,
+          transportCharges:raw.transportCharges,
+          paymentMode:     raw.paymentMode,
+          paymentType:     raw.paymentType,
+          notes:           raw.notes,
+          items: (raw.items ?? []).map((it: any) => ({
+            productName:   it.productName  || it.name || '—',
+            quantity:      it.quantity     ?? 0,
+            unitType:      it.unitType     || '',
+            rate:          it.rate         ?? it.finalRate ?? 0,
+            total:         it.total        ?? 0,
+            hsnCode:       it.hsnCode,
+            gstPercentage: it.gstPercentage,
+            taxableAmount: it.taxableAmount,
+            gstAmount:     it.gstAmount,
+          })),
         };
         setPreviewInvoice(mappedInvoice);
         setShowPreviewModal(true);
@@ -106,6 +133,7 @@ export default function LedgerScreen() {
       setLoadingInvoice(false);
     }
   };
+
 
   // Fetch unified ledger
   const fetchLedger = useCallback(async () => {
@@ -145,7 +173,14 @@ export default function LedgerScreen() {
 
   const handleDownloadPdf = () => {
     setShowMenu(false);
-    apiService.openLedgerPdf(fromDate, toDate, partyId, types);
+    downloadLedgerPdf({
+      partyId,
+      partyName,
+      fromDate,
+      toDate,
+      types,
+      showNotes,
+    });
   };
 
   const handleRefresh = () => {
@@ -167,9 +202,13 @@ export default function LedgerScreen() {
   const paginatedItems = ledgerData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header with blue/indigo gradient */}
-      <LinearGradient colors={['#1e3a8a', '#3b82f6']} style={styles.header}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+      {/* Header with navy gradient matching ReportsScreen */}
+      <LinearGradient
+        colors={['#0f172a', '#1e293b']}
+        style={[styles.header, { paddingTop: insets.top + 10 }]}
+      >
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.navigate('Reports')} style={styles.backButton}>
             <Text style={styles.backIcon}>←</Text>
@@ -324,6 +363,22 @@ export default function LedgerScreen() {
           onPress={() => setShowMenu(false)}
         >
           <View style={styles.menuDropdown}>
+            {/* Include Notes toggle */}
+            <TouchableOpacity
+              style={[styles.menuItem, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}
+              onPress={() => setShowNotes(n => !n)}
+            >
+              <View style={{
+                width: 22, height: 22, borderRadius: 5, borderWidth: 2,
+                borderColor: showNotes ? '#10b981' : '#cbd5e1',
+                backgroundColor: showNotes ? '#10b981' : '#fff',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                {showNotes && <Text style={{ color: '#fff', fontSize: 13, fontWeight: '900' }}>✓</Text>}
+              </View>
+              <Text style={styles.menuItemText}>Notes</Text>
+            </TouchableOpacity>
+            <View style={styles.menuDivider} />
             <TouchableOpacity onPress={handleDownloadPdf} style={styles.menuItem}>
               <Text style={styles.menuItemText}>📄 Download PDF</Text>
             </TouchableOpacity>
@@ -364,7 +419,7 @@ export default function LedgerScreen() {
           <Text style={{ marginTop: 10, color: '#fff', fontWeight: '700' }}>Fetching invoice details...</Text>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -9,8 +9,8 @@ import Config from 'react-native-config';
 // API Configuration
 // ============================================================
 export const apiConfig = {
-  // #baseUrl: Config.BACKEND_URL || 'https://backendbusinessapp.onrender.com',
-  baseUrl: Config.BACKEND_URL || 'http://192.168.0.101:8080',
+  // Local dev: 'http://192.168.0.110:8080'
+  baseUrl: Config.BACKEND_URL || 'https://backendbusinessapp.onrender.com',
   timeout: Number(Config.API_TIMEOUT) || 15000,
 };
 

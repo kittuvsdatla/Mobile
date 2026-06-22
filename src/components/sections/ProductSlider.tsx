@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Dimensions, Animated,
+  Dimensions, Animated, Alert,
 } from 'react-native';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -177,10 +177,10 @@ export default function ProductSlider() {
 
           {/* Actions */}
           <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.getStartedBtn} activeOpacity={0.85}>
+            <TouchableOpacity style={styles.getStartedBtn} activeOpacity={0.85} onPress={() => Alert.alert('Coming Soon', 'This feature is currently in development.')}>
               <Text style={styles.getStartedText}>→  Get Started</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.learnMoreBtn} activeOpacity={0.75}>
+            <TouchableOpacity style={styles.learnMoreBtn} activeOpacity={0.75} onPress={() => Alert.alert('Coming Soon', 'Detailed product documentation will be available soon.')}>
               <Text style={styles.learnMoreText}>Learn More</Text>
             </TouchableOpacity>
           </View>

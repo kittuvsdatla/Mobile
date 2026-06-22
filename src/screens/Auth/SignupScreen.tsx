@@ -12,6 +12,7 @@ import { signupUser } from '@/store/slices/authSlice';
 import { apiService } from '@/services/apiService';
 import { Input }  from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { COLORS, RADIUS, SHADOWS } from '@/styles/theme';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
 
@@ -61,7 +62,7 @@ export default function SignupScreen({ route }: Props) {
   };
 
   const validateStep3 = () => {
-    if (form.pin.length !== 6)    { setFormError('PIN must be 6 digits'); return false; }
+    if (form.pin.length !== 4)    { setFormError('PIN must be 4 digits'); return false; }
     if (form.pin !== form.confirmPin) { setFormError('PINs do not match'); return false; }
     return true;
   };
@@ -171,20 +172,20 @@ export default function SignupScreen({ route }: Props) {
             {step === 3 && (
               <>
                 <Text style={styles.pinHint}>
-                  Create a 6-digit PIN to secure your account. You'll use this PIN to unlock the app.
+                  Create a 4-digit PIN to secure your account. You'll use this PIN to unlock the app.
                 </Text>
-                <Input label="Create PIN" placeholder="6-digit PIN" value={form.pin} onChangeText={v => update('pin', v.replace(/\D/g, '').slice(0, 6))} keyboardType="numeric" secureTextEntry leftIcon="🔒" required maxLength={6} />
-                <Input label="Confirm PIN" placeholder="Re-enter 6-digit PIN" value={form.confirmPin} onChangeText={v => update('confirmPin', v.replace(/\D/g, '').slice(0, 6))} keyboardType="numeric" secureTextEntry leftIcon="🔒" required maxLength={6} />
+                <Input label="Create PIN" placeholder="4-digit PIN" value={form.pin} onChangeText={v => update('pin', v.replace(/\D/g, '').slice(0, 4))} keyboardType="numeric" secureTextEntry leftIcon="🔒" required maxLength={4} />
+                <Input label="Confirm PIN" placeholder="Re-enter 4-digit PIN" value={form.confirmPin} onChangeText={v => update('confirmPin', v.replace(/\D/g, '').slice(0, 4))} keyboardType="numeric" secureTextEntry leftIcon="🔒" required maxLength={4} />
               </>
             )}
 
             {/* Navigation */}
             <View style={styles.btnRow}>
               {step > 1 && (
-                <Button title="← Back" onPress={() => setStep(step - 1)} variant="outline" style={styles.backBtn} />
+                <Button title="Back" onPress={() => setStep(step - 1)} variant="neutral" style={styles.backBtn} />
               )}
               {step < 3 ? (
-                <Button title="Next →" onPress={handleNext} style={styles.nextBtn} />
+                <Button title="Continue" onPress={handleNext} style={styles.nextBtn} />
               ) : (
                 <Button title={isLoading ? 'Registering...' : 'Create Account'} onPress={handleSubmit} loading={isLoading} style={styles.nextBtn} />
               )}
@@ -204,40 +205,40 @@ const styles = StyleSheet.create({
   container:      { flex: 1, backgroundColor: '#ffffff' },
   kv:             { flex: 1 },
   scroll:         { flexGrow: 1 },
-  header:         { backgroundColor: '#f16a0a', paddingTop: 56, paddingBottom: 32, alignItems: 'center', paddingHorizontal: 24 },
-  logoCircle:     { width: 56, height: 56, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  logoText:       { color: '#fff', fontSize: 26, fontWeight: '800' },
-  title:          { fontSize: 26, fontWeight: '800', color: '#ffffff', marginBottom: 6 },
-  subtitle:       { fontSize: 14, color: 'rgba(255,255,255,0.85)', textAlign: 'center' },
+  header:         { backgroundColor: COLORS.dark, paddingTop: 56, paddingBottom: 40, alignItems: 'center', paddingHorizontal: 24, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
+  logoCircle:     { width: 64, height: 64, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  logoText:       { color: COLORS.surface, fontSize: 32, fontWeight: '900' },
+  title:          { fontSize: 28, fontWeight: '900', color: COLORS.surface, marginBottom: 8, letterSpacing: -0.5 },
+  subtitle:       { fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
 
-  stepRow:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 20, paddingHorizontal: 40 },
-  stepCircle:     { width: 32, height: 32, borderRadius: 16, backgroundColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center' },
-  stepCircleActive:{ backgroundColor: '#f16a0a' },
-  stepNum:        { fontSize: 14, fontWeight: '700', color: '#9ca3af' },
+  stepRow:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 24, paddingHorizontal: 40 },
+  stepCircle:     { width: 36, height: 36, borderRadius: 18, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' },
+  stepCircleActive:{ backgroundColor: COLORS.primary },
+  stepNum:        { fontSize: 15, fontWeight: '700', color: '#64748b' },
   stepNumActive:  { color: '#ffffff' },
-  stepLine:       { flex: 1, height: 2, backgroundColor: '#e5e7eb', marginHorizontal: 6 },
-  stepLineActive: { backgroundColor: '#f16a0a' },
-  stepLabels:     { flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: 24, marginBottom: 8 },
-  stepLabel:      { fontSize: 11, color: '#9ca3af', fontWeight: '500' },
-  stepLabelActive:{ color: '#f16a0a', fontWeight: '700' },
+  stepLine:       { flex: 1, height: 3, backgroundColor: '#e2e8f0', marginHorizontal: 8, borderRadius: 1.5 },
+  stepLineActive: { backgroundColor: COLORS.primary },
+  stepLabels:     { flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: 20, marginBottom: 12 },
+  stepLabel:      { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
+  stepLabelActive:{ color: COLORS.primary, fontWeight: '800' },
 
   form:           { padding: 24 },
-  errorBox:       { backgroundColor: '#fef2f2', borderWidth: 1, borderColor: '#fecaca', borderRadius: 10, padding: 12, marginBottom: 16 },
-  errorText:      { fontSize: 13, color: '#dc2626', fontWeight: '500' },
+  errorBox:       { backgroundColor: COLORS.dangerLight, borderWidth: 1, borderColor: '#fecaca', borderRadius: RADIUS.lg, padding: 12, marginBottom: 16 },
+  errorText:      { fontSize: 13, color: COLORS.danger, fontWeight: '600' },
 
-  pinHint:        { fontSize: 14, color: '#6b7280', lineHeight: 22, backgroundColor: '#fef7ee', borderRadius: 10, padding: 12, marginBottom: 16 },
+  pinHint:        { fontSize: 14, color: COLORS.textSecondary, lineHeight: 22, backgroundColor: COLORS.infoLight, borderRadius: RADIUS.lg, padding: 14, marginBottom: 16 },
   planSection:    { marginBottom: 8 },
-  planLabel:      { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 10 },
-  planCard:       { borderWidth: 1.5, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, marginBottom: 8 },
-  planCardActive: { borderColor: '#f16a0a', backgroundColor: '#fef7ee' },
-  planName:       { fontSize: 14, fontWeight: '700', color: '#374151', marginBottom: 4 },
-  planNameActive: { color: '#f16a0a' },
-  planPrice:      { fontSize: 12, color: '#6b7280' },
+  planLabel:      { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  planCard:       { borderWidth: 2, borderColor: COLORS.border, borderRadius: RADIUS.lg, padding: 16, marginBottom: 12, backgroundColor: COLORS.surface },
+  planCardActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+  planName:       { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 4 },
+  planNameActive: { color: COLORS.primary },
+  planPrice:      { fontSize: 13, color: COLORS.textSecondary, fontWeight: '600' },
 
-  btnRow:         { flexDirection: 'row', gap: 12, marginTop: 8 },
+  btnRow:         { flexDirection: 'row', gap: 12, marginTop: 16 },
   backBtn:        { flex: 1 },
   nextBtn:        { flex: 2 },
 
-  loginLink:      { alignItems: 'center', paddingVertical: 16, marginTop: 12 },
-  loginLinkText:  { fontSize: 14, color: '#f16a0a', fontWeight: '600' },
+  loginLink:      { alignItems: 'center', paddingVertical: 20, marginTop: 16 },
+  loginLinkText:  { fontSize: 15, color: COLORS.primary, fontWeight: '700' },
 });

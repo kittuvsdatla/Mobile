@@ -1,7 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from '@/services/apiService';
-import { STORAGE_KEYS } from '@/config';
 import type { AuthResponse, EmployeePermissions } from '@/types';
 
 interface UserState {
@@ -23,6 +21,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   token: string | null;
+  isPinUnlocked: boolean;
 }
 
 const initialState: AuthState = {
@@ -31,6 +30,7 @@ const initialState: AuthState = {
   isLoading: false,
   error: null,
   token: null,
+  isPinUnlocked: false,
 };
 
 function mapAuthResponse(data: AuthResponse): UserState {
@@ -60,7 +60,6 @@ export const verifyOtp = createAsyncThunk(
     const response = await apiService.verifyOtp(phone, otp, firebaseIdToken);
     if (response.success && response.data) {
       await apiService.setToken(response.data.token);
-      await AsyncStorage.setItem(STORAGE_KEYS.PIN_UNLOCKED, 'true');
       return response.data;
     }
     return rejectWithValue(response.error || 'OTP verification failed');
@@ -76,7 +75,6 @@ export const loginUser = createAsyncThunk(
     const response = await apiService.login(email, password);
     if (response.success && response.data) {
       await apiService.setToken(response.data.token);
-      await AsyncStorage.setItem(STORAGE_KEYS.PIN_UNLOCKED, 'true');
       return response.data;
     }
     return rejectWithValue(response.error || 'Login failed');
@@ -92,7 +90,6 @@ export const signupUser = createAsyncThunk(
     const response = await apiService.signup(data);
     if (response.success && response.data) {
       await apiService.setToken(response.data.token);
-      await AsyncStorage.setItem(STORAGE_KEYS.PIN_UNLOCKED, 'true');
       return response.data;
     }
     return rejectWithValue(response.error || 'Signup failed');
@@ -130,6 +127,10 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.token = action.payload.token;
       state.user  = mapAuthResponse(action.payload);
+      state.isPinUnlocked = true;
+    },
+    unlockApp: state => {
+      state.isPinUnlocked = true;
     },
   },
   extraReducers: builder => {
@@ -137,12 +138,22 @@ const authSlice = createSlice({
       state.isLoading = true;
       state.error     = null;
     };
-    const handleFulfilled = (state: AuthState, action: any) => {
-      state.isLoading      = false;
+    const handleAuthActionFulfilled = (state: AuthState, action: any) => {
+      state.isLoading       = false;
       state.isAuthenticated = true;
-      state.token          = action.payload.token || state.token;
-      state.user           = mapAuthResponse(action.payload);
-      state.error          = null;
+      state.token           = action.payload.token || state.token;
+      state.user            = mapAuthResponse(action.payload);
+      state.error           = null;
+      state.isPinUnlocked   = true; // Active login unlocks the app
+    };
+
+    const handleCheckAuthFulfilled = (state: AuthState, action: any) => {
+      state.isLoading       = false;
+      state.isAuthenticated = true;
+      state.token           = action.payload.token || state.token;
+      state.user            = mapAuthResponse(action.payload);
+      state.error           = null;
+      // Note: checkAuth sets authenticated but isPinUnlocked remains false 
     };
     const handleRejected = (state: AuthState, action: any) => {
       state.isLoading = false;
@@ -151,23 +162,24 @@ const authSlice = createSlice({
 
     builder
       .addCase(verifyOtp.pending,   handlePending)
-      .addCase(verifyOtp.fulfilled, handleFulfilled)
+      .addCase(verifyOtp.fulfilled, handleAuthActionFulfilled)
       .addCase(verifyOtp.rejected,  handleRejected)
       .addCase(loginUser.pending,   handlePending)
-      .addCase(loginUser.fulfilled, handleFulfilled)
+      .addCase(loginUser.fulfilled, handleAuthActionFulfilled)
       .addCase(loginUser.rejected,  handleRejected)
       .addCase(signupUser.pending,  handlePending)
-      .addCase(signupUser.fulfilled,handleFulfilled)
+      .addCase(signupUser.fulfilled,handleAuthActionFulfilled)
       .addCase(signupUser.rejected, handleRejected)
-      .addCase(checkAuth.fulfilled, handleFulfilled)
+      .addCase(checkAuth.fulfilled, handleCheckAuthFulfilled)
       .addCase(checkAuth.rejected,  state => {
         state.isAuthenticated = false;
         state.user  = null;
         state.token = null;
+        state.isPinUnlocked = false;
       })
       .addCase(logoutUser.fulfilled, () => initialState);
   },
 });
 
-export const { clearError, resetAuth, initializeAuth } = authSlice.actions;
+export const { clearError, resetAuth, initializeAuth, unlockApp } = authSlice.actions;
 export default authSlice.reducer;
