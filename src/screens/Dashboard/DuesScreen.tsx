@@ -242,17 +242,17 @@ export default function DuesScreen() {
       <View style={S.statsRow}>
         <View style={S.statCard}>
           <Text style={S.statLbl}>To Receive</Text>
-          <Text style={[S.statVal, { color: T.emerald }]}>{fmt(totalReceivable)}</Text>
+          <Text style={[S.statVal, { color: T.emerald }]} numberOfLines={1} adjustsFontSizeToFit>{fmt(totalReceivable)}</Text>
         </View>
         <View style={{ width: 1, backgroundColor: T.bdr }} />
         <View style={S.statCard}>
           <Text style={S.statLbl}>To Pay</Text>
-          <Text style={[S.statVal, { color: T.rose }]}>{fmt(totalPayable)}</Text>
+          <Text style={[S.statVal, { color: T.rose }]} numberOfLines={1} adjustsFontSizeToFit>{fmt(totalPayable)}</Text>
         </View>
         <View style={{ width: 1, backgroundColor: T.bdr }} />
         <View style={S.statCard}>
           <Text style={S.statLbl}>Net Balance</Text>
-          <Text style={[S.statVal, { color: netBalance > 0 ? T.emerald : netBalance < 0 ? T.rose : T.t1 }]}>{fmt(Math.abs(netBalance))} {netBalance < 0 ? '(Pay)' : ''}</Text>
+          <Text style={[S.statVal, { color: netBalance > 0 ? T.emerald : netBalance < 0 ? T.rose : T.t1 }]} numberOfLines={1} adjustsFontSizeToFit>{fmt(Math.abs(netBalance))}</Text>
         </View>
       </View>
 
@@ -305,12 +305,12 @@ export default function DuesScreen() {
               <View style={S.cardDivider} />
 
               <View style={S.cardBot}>
-                <Text style={S.botTxt}>Total: {fmt(item.totalAmount || item.amount || 0)}</Text>
-                <Text style={S.botTxt}> • </Text>
-                <Text style={[S.botTxt, { color: T.emerald }]}>Paid: {fmt(item.paidAmount || 0)}</Text>
-                <View style={{ flex: 1 }} />
+                <View style={{ flex: 1, paddingRight: 8, gap: 2 }}>
+                  <Text style={S.botTxt} numberOfLines={1} adjustsFontSizeToFit>Total: {fmt(item.totalAmount || item.amount || 0)}</Text>
+                  <Text style={[S.botTxt, { color: T.emerald }]} numberOfLines={1} adjustsFontSizeToFit>Paid: {fmt(item.paidAmount || 0)}</Text>
+                </View>
                 {!isCleared && (
-                  <TouchableOpacity style={[S.actionBtn, { backgroundColor: isReceivable ? T.emeraldBg : T.roseBg }]} onPress={() => openPayModal(item)}>
+                  <TouchableOpacity style={[S.actionBtn, { backgroundColor: isReceivable ? T.emeraldBg : T.roseBg, flexShrink: 0 }]} onPress={() => openPayModal(item)}>
                     <Text style={[S.actionTxt, { color: isReceivable ? T.emerald : T.rose }]}>{isReceivable ? 'Receive Payment' : 'Record Payment'}</Text>
                   </TouchableOpacity>
                 )}

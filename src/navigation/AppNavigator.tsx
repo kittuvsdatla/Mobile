@@ -4,6 +4,7 @@ import { useDispatch, useSelector }    from 'react-redux';
 import type { RootState, AppDispatch } from '@/store';
 import { checkAuth }                   from '@/store/slices/authSlice';
 import type { RootStackParamList }     from '@/types';
+import { useWebSocketSync }            from '@/hooks/useWebSocketSync';
 
 import SplashScreen       from '@/screens/SplashScreen';
 import LandingScreen      from '@/screens/Landing/LandingScreen';
@@ -22,6 +23,9 @@ export default function AppNavigator() {
   useEffect(() => {
     dispatch(checkAuth());
   }, [dispatch]);
+
+  // Activate Real-time WebSocket Sync globally for authenticated users
+  useWebSocketSync();
 
   // Show splash until animation completes (has a built-in fallback timer)
   if (!splashDone) {

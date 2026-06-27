@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  RefreshControl, StatusBar, Dimensions, Animated, Modal,
+  RefreshControl, StatusBar, Dimensions, Animated, Modal, Image,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -75,8 +75,8 @@ function ProfileSheet({ visible, onClose, user, onLogout }: any) {
       <Animated.View style={[ps.sheet, { paddingBottom: insets.bottom + 16, transform: [{ translateY: slide }] }]}>
         <View style={ps.handle} />
         <View style={ps.center}>
-          <View style={ps.bigAvatar}>
-            <Text style={ps.bigAvatarTxt}>{user?.name?.[0]?.toUpperCase() || 'U'}</Text>
+          <View style={[ps.bigAvatar, { backgroundColor: 'transparent', overflow: 'hidden' }]}>
+            <Image source={require('@/assets/images/logo.jpg')} style={{ width: 84, height: 84 }} />
           </View>
           <Text style={ps.name}>{user?.name || 'User'}</Text>
           <Text style={ps.entity}>{user?.entityName || 'BusinessApp'}</Text>
@@ -148,8 +148,8 @@ export default function OverviewScreen() {
             <Text style={S.heroName} numberOfLines={1}>{user?.name || 'User'}</Text>
             <Text style={S.heroEntity} numberOfLines={1}>{user?.entityName}</Text>
           </View>
-          <TouchableOpacity style={S.avatarBtn} onPress={() => setProfileVisible(true)} activeOpacity={0.85}>
-            <Text style={S.avatarTxt}>{user?.name?.[0]?.toUpperCase() || 'U'}</Text>
+          <TouchableOpacity style={[S.avatarBtn, { overflow: 'hidden', backgroundColor: 'transparent' }]} onPress={() => setProfileVisible(true)} activeOpacity={0.85}>
+            <Image source={require('@/assets/images/logo.jpg')} style={{ width: 54, height: 54 }} />
             <View style={S.avatarOnline} />
           </TouchableOpacity>
         </View>
@@ -252,9 +252,10 @@ const S = StyleSheet.create({
   secTitle: { fontSize: 17, fontWeight: '900', color: T.t1, marginBottom: 14, letterSpacing: -0.3, marginLeft: 4 },
 
   // Quick Actions — 3 per row
-  actGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24, justifyContent: 'space-between' },
+  actGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 24, justifyContent: 'space-between' },
   actCard: {
     width: '31.5%', // 3 columns
+    marginBottom: 12,
     borderRadius: 20, paddingVertical: 18, paddingHorizontal: 4,
     alignItems: 'center', justifyContent: 'center', gap: 10,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,

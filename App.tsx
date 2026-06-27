@@ -3,6 +3,7 @@
  * React Native 0.86 + NativeWind v4 + Redux + React Navigation
  */
 
+import 'text-encoding';
 import React from 'react';
 import { StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
